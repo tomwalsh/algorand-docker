@@ -84,7 +84,9 @@ RUN apk add --update --no-cache \
 COPY --from=builder ${ALGO_PATH}/tmp/dev_pkg/genesis/mainnet/genesis.json /home/${APP_USER}/genesis.json
 
 # Allow port 4160 for communication with the chain
+# Allow port 8080 for RPC communication
 EXPOSE 4160
+EXPOSE 8080
 
 # Set the pocket data folder to be a data volume
 VOLUME /home/${APP_USER}/.algorand
