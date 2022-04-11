@@ -24,3 +24,7 @@ docker run algorand:latest
 
 ### Suggestions
 It is suggested that you run this with a data volume or host volume so that you don't have to resync the node after every restart.
+
+```
+docker run -ti --rm -v [path to data folder]:/home/app/.algorand .
+```
