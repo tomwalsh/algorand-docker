@@ -4,7 +4,7 @@ This repo contains a Docker based setup for compiling and running an Algorand no
 ## Basic Information
 The Docker build uses a multistage build to compile Algorand, and then move the binaries to the production docker image when completed.
 
-The image also makes use of the `gosu` application to drop privledges so that algod doesn't run as root.
+The image also makes use of the [`gosu`](https://github.com/tianon/gosu) application to drop privledges so that algod doesn't run as root.
 
 Alogrand runs as the user "app" within the container. If you want to change this behavior you will also need to edit the user in the entrypoint.sh script.
 
