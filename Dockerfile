@@ -3,8 +3,8 @@
 ###############
 
 # Settings used in the Dockerfile to build the application
-ARG GOLANG_IMAGE_VERSION=golang:alpine3.15
-ARG ALPINE_IMAGE_VERSION=alpine:3.15
+ARG GOLANG_IMAGE_VERSION=golang:alpine
+ARG ALPINE_IMAGE_VERSION=alpine:latest
 
 # Multistage build of the algorand application
 FROM ${GOLANG_IMAGE_VERSION} AS builder
@@ -12,20 +12,22 @@ FROM ${GOLANG_IMAGE_VERSION} AS builder
 # Defaults for our build
 ARG ALGO_PATH=/go/src/github.com/algorand/go-algorand
 ARG GOSU_PATH=/go/src/github.com/tianon/gosu
-ARG ALGO_VERSION=v3.5.1-stable
-ARG GOSU_VERSION=1.14
 
 # Install requirements to build the application
 RUN apk update && apk upgrade
-RUN apk add --no-cache boost-dev git bash make libtool autoconf automake gcc build-base cmake sqlite
+RUN apk add --no-cache boost-dev git bash make libtool autoconf automake gcc build-base cmake sqlite curl jq
 RUN rm /var/cache/apk/* || true
 
 # Setup the build path and set it as the working directory
 RUN mkdir -p ${ALGO_PATH}
 WORKDIR ${ALGO_PATH}
 
+# Workaround for a broken go-sqlite3 build in newer versions of Alpine for musl-1.2.4
+ENV CGO_CFLAGS="-D_LARGEFILE64_SOURCE"
+
 # Check out the code from the repo
-RUN git -c advice.detachedHead=false clone --branch $ALGO_VERSION https://github.com/algorand/go-algorand.git ${ALGO_PATH}
+RUN most_recent_stable_tag=$(curl -s "https://api.github.com/repos/algorand/go-algorand/tags" | jq -r '.[].name' | grep "stable" | sort -V | tail -n 1) && \
+	git -c advice.detachedHead=false clone --branch $most_recent_stable_tag https://github.com/algorand/go-algorand.git ${ALGO_PATH}
 
 # Build the application for use in the next stage
 RUN make install
@@ -35,8 +37,9 @@ RUN make install
 RUN mkdir -p ${GOSU_PATH}
 WORKDIR ${GOSU_PATH}
 
-# Check out the gosu code to build from
-RUN git -c advice.detachedHead=false clone --branch $GOSU_VERSION https://github.com/tianon/gosu.git ${GOSU_PATH}
+# Check out the latest tagged version of gosu code to build from
+RUN most_recent_tag=$(curl -s "https://api.github.com/repos/tianon/gosu/tags" | jq -r '.[].name' | sort -V | tail -n 1) && \
+	git -c advice.detachedHead=false clone --branch $most_recent_tag https://github.com/tianon/gosu.git ${GOSU_PATH}
 
 # Build gosu - Run multiple commands because we don't care about the image size as it will be discarded.
 RUN go mod download
